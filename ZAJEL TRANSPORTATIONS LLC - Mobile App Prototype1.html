@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZAJEL TRANSPORTATIONS LLC - Mobile App Prototype</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        zajel: {
+                            navy: '#0F172A',
+                            blue: '#0284C7',
+                            amber: '#F59E0B',
+                            green: '#10B981',
+                            dark: '#1E293B'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Mobile Frame & Scrollbar Styling */
+        body {
+            background-color: #0f172a;
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .android-shadow {
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        /* Custom Pulse for GPS marker */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.3); opacity: 0.2; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+        .gps-pulse {
+            animation: pulse-ring 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-2 sm:p-6">
+
+    <!-- Android Device Frame Wrapper -->
+    <div class="relative w-full max-w-[420px] h-[850px] bg-slate-900 rounded-[48px] p-3 border-4 border-slate-700 android-shadow overflow-hidden flex flex-col">
+        
+        <!-- Screen Container -->
+        <div class="relative w-full h-full bg-slate-50 rounded-[38px] overflow-hidden flex flex-col justify-between">
+            
+            <!-- Android System Status Bar -->
+            <div class="w-full bg-slate-900 text-white px-6 pt-3 pb-2 flex justify-between items-center text-xs font-semibold z-50">
+                <span id="android-clock">12:00</span>
+                <!-- Camera Notch -->
+                <div class="w-16 h-4 bg-black rounded-full flex justify-center items-center">
+                    <div class="w-2.5 h-2.5 bg-slate-800 rounded-full"></div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <i class="fas font-solid fa-wifi"></i>
+                    <i class="fas fa-signal"></i>
+                    <i class="fas fa-battery-full text-emerald-400"></i>
+                </div>
+            </div>
+
+            <!-- App Top Header with Role Switcher -->
+            <div class="bg-slate-900 text-white px-5 py-3 shadow-md z-40">
+                <div class="flex justify-between items-center mb-2">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-slate-900 font-extrabold text-lg shadow-inner">
+                            Z
+                        </div>
+                        <div>
+                            <h1 class="font-bold text-sm tracking-wide text-white leading-none">ZAJEL</h1>
+                            <span class="text-[10px] text-amber-400 font-medium tracking-wider">TRANSPORTATIONS LLC</span>
+                        </div>
+                    </div>
+                    <!-- Role Badge Switcher Trigger -->
+                    <button onclick="toggleRoleMenu()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs px-2.5 py-1 rounded-full flex items-center space-x-1.5 transition">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                        <span id="current-role-label" class="font-medium text-slate-200">Driver View</span>
+                        <i class="fas fa-chevron-down text-[10px] text-slate-400"></i>
+                    </button>
+                </div>
+
+                <!-- Role Selection Dropdown Menu -->
+                <div id="role-menu" class="hidden mt-2 bg-slate-800 border border-slate-700 rounded-xl p-1.5 shadow-xl transition-all">
+                    <button onclick="switchRole('driver')" class="w-full text-left px-3 py-2 text-xs text-slate-200 hover:bg-slate-700 rounded-lg flex items-center justify-between">
+                        <span><i class="fas fa-truck-moving text-amber-400 mr-2"></i>Driver View</span>
+                        <i id="check-driver" class="fas fa-check text-emerald-400 text-xs"></i>
+                    </button>
+                    <button onclick="switchRole('fleet')" class="w-full text-left px-3 py-2 text-xs text-slate-200 hover:bg-slate-700 rounded-lg flex items-center justify-between">
+                        <span><i class="fas fa-chart-line text-sky-400 mr-2"></i>Fleet Manager View</span>
+                        <i id="check-fleet" class="fas fa-check text-emerald-400 text-xs hidden"></i>
+                    </button>
+                    <button onclick="switchRole('customer')" class="w-full text-left px-3 py-2 text-xs text-slate-200 hover:bg-slate-700 rounded-lg flex items-center justify-between">
+                        <span><i class="fas fa-box text-emerald-400 mr-2"></i>Customer Booking</span>
+                        <i id="check-customer" class="fas fa-check text-emerald-400 text-xs hidden"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- MAIN SCREEN CONTENT AREA (Scrollable) -->
+            <div id="screen-container" class="flex-1 overflow-y-auto no-scrollbar bg-slate-100 p-4">
+
+                <!-- ==================== 1. DRIVER VIEW ==================== -->
+                <div id="view-driver" class="space-y-4">
+                    <!-- Status Quick Stats -->
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm text-center">
+                            <span class="block text-[10px] text-slate-500 font-semibold uppercase">Pending</span>
+                            <span class="text-lg font-bold text-amber-500">2</span>
+                        </div>
+                        <div class="bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm text-center">
+                            <span class="block text-[10px] text-slate-500 font-semibold uppercase">In Transit</span>
+                            <span class="text-lg font-bold text-sky-600">1</span>
+                        </div>
+                        <div class="bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm text-center">
+                            <span class="block text-[10px] text-slate-500 font-semibold uppercase">Delivered</span>
+                            <span class="text-lg font-bold text-emerald-600">14</span>
+                        </div>
+                    </div>
+
+                    <!-- DVIR Inspection Alert Banner -->
+                    <div class="bg-amber-50 border-l-4 border-amber-500 p-3 rounded-r-xl shadow-sm flex items-center justify-between">
+                        <div class="flex items-center space-x-2.5">
+                            <div class="w-8 h-8 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center">
+                                <i class="fas fa-clipboard-check text-sm"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-bold text-slate-800">Pre-Trip DVIR Required</h4>
+                                <p class="text-[10px] text-slate-600">Truck #1042 • Trailer #5301</p>
+                            </div>
+                        </div>
+                        <button onclick="openDvirModal()" class="bg-amber-500 hover:bg-amber-600 text-slate-900 text-[11px] font-bold px-3 py-1.5 rounded-lg shadow-sm">
+                            Inspect
+                        </button>
+                    </div>
+
+                    <!-- Active Load Tracker Card (In Transit) -->
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 bg-sky-600 text-white text-[10px] font-bold uppercase px-3 py-1 rounded-bl-xl">
+                            In Transit
+                        </div>
+
+                        <div class="flex items-center space-x-2 text-xs font-semibold text-slate-400 mb-1">
+                            <span>LOAD #ZJL-9823</span>
+                        </div>
+                        <h3 class="text-sm font-bold text-slate-800 mb-3">Refrigerated Produce (42,000 lbs)</h3>
+
+                        <!-- Route Visualizer -->
+                        <div class="relative pl-6 space-y-4 my-3 border-l-2 border-dashed border-sky-300 ml-2">
+                            <div class="relative">
+                                <div class="absolute -left-[31px] top-0 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white shadow"></div>
+                                <span class="block text-[10px] text-slate-400 uppercase font-semibold">Origin</span>
+                                <span class="text-xs font-bold text-slate-700">Columbus, OH</span>
+                                <span class="text-[10px] text-slate-500 block">Departed: Oct 26, 06:30 AM</span>
+                            </div>
+                            <div class="relative">
+                                <div class="absolute -left-[31px] top-0 w-4 h-4 rounded-full bg-amber-500 border-2 border-white shadow gps-pulse"></div>
+                                <span class="block text-[10px] text-slate-400 uppercase font-semibold">Destination</span>
+                                <span class="text-xs font-bold text-slate-700">Chicago, IL</span>
+                                <span class="text-[10px] text-amber-600 font-semibold block">ETA: Today, 04:15 PM</span>
+                            </div>
+                        </div>
+
+                        <!-- Live GPS Map Canvas Preview -->
+                        <div class="relative w-full h-32 bg-slate-900 rounded-xl overflow-hidden my-3">
+                            <canvas id="driver-gps-canvas" class="w-full h-full"></canvas>
+                            <div class="absolute top-2 left-2 bg-slate-900/80 backdrop-blur-sm text-white px-2 py-1 rounded text-[10px] flex items-center space-x-1">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                                <span>Live Speed: <strong class="text-emerald-400">62 mph</strong></span>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
+                            <button onclick="openPodModal('ZJL-9823')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold py-2 rounded-xl flex items-center justify-center space-x-1.5 transition">
+                                <i class="fas fa-file-upload text-sky-600"></i>
+                                <span>Upload BOL/POD</span>
+                            </button>
+                            <button onclick="openStatusUpdateModal('ZJL-9823')" class="bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold py-2 rounded-xl flex items-center justify-center space-x-1.5 shadow-sm transition">
+                                <i class="fas fa-sync-alt"></i>
+                                <span>Update Status</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Pending Load Cards -->
+                    <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <span class="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full uppercase">Pending Pickup</span>
+                                <h4 class="text-xs font-bold text-slate-800 mt-1">Dry Van Automotive Parts</h4>
+                            </div>
+                            <span class="text-xs font-extrabold text-slate-700">$1,850</span>
+                        </div>
+                        <p class="text-[11px] text-slate-500 mb-2"><i class="fas fa-map-marker-alt text-amber-500 mr-1"></i>Indianapolis, IN → Detroit, MI</p>
+                        <button onclick="openStatusUpdateModal('ZJL-9824')" class="w-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold py-2 rounded-xl transition">
+                            Start Dispatch Process
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ==================== 2. FLEET MANAGER VIEW ==================== -->
+                <div id="view-fleet" class="space-y-4 hidden">
+                    <!-- KPI Summary Cards -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-slate-900 text-white p-3.5 rounded-2xl shadow-sm">
+                            <span class="text-[10px] text-slate-400 font-semibold uppercase block">Monthly Gross</span>
+                            <span class="text-xl font-extrabold text-emerald-400">$128,450</span>
+                            <span class="text-[10px] text-slate-400 block mt-1"><i class="fas fa-arrow-up text-emerald-400 mr-1"></i>12% vs last mo</span>
+                        </div>
+                        <div class="bg-slate-900 text-white p-3.5 rounded-2xl shadow-sm">
+                            <span class="text-[10px] text-slate-400 font-semibold uppercase block">Active Trucks</span>
+                            <span class="text-xl font-extrabold text-amber-400">18 / 20</span>
+                            <span class="text-[10px] text-slate-400 block mt-1"><i class="fas fa-check-circle text-emerald-400 mr-1"></i>90% Utilization</span>
+                        </div>
+                    </div>
+
+                    <!-- Regulatory Compliance Badge -->
+                    <div class="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-9 h-9 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center font-bold text-base">
+                                <i class="fas fa-shield-alt"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-bold text-slate-800">USDOT & MC Compliance</h4>
+                                <p class="text-[10px] text-slate-500">DOT #3104928 • MC #381920</p>
+                            </div>
+                        </div>
+                        <span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-1 rounded-full">ACTIVE</span>
+                    </div>
+
+                    <!-- Load Filter & Search Controls -->
+                    <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+                        <div class="relative">
+                            <i class="fas fa-search absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                            <input id="fleet-search-input" onkeyup="filterFleetLoads()" type="text" placeholder="Search Load #, City, or Driver..." class="w-full bg-slate-50 text-xs pl-8 pr-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:border-sky-500">
+                        </div>
+                        <div class="flex space-x-1.5 overflow-x-auto no-scrollbar pt-1">
+                            <button onclick="setFilter('all', this)" class="filter-btn bg-slate-900 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg whitespace-nowrap">All Loads</button>
+                            <button onclick="setFilter('in_transit', this)" class="filter-btn bg-slate-100 text-slate-600 text-[10px] font-semibold px-3 py-1.5 rounded-lg whitespace-nowrap">In Transit</button>
+                            <button onclick="setFilter('unassigned', this)" class="filter-btn bg-slate-100 text-slate-600 text-[10px] font-semibold px-3 py-1.5 rounded-lg whitespace-nowrap">Unassigned</button>
+                        </div>
+                    </div>
+
+                    <!-- Fleet Dispatch Table/List -->
+                    <div id="fleet-loads-list" class="space-y-2.5">
+                        <!-- Fleet Item 1 -->
+                        <div class="fleet-item bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between" data-status="in_transit" data-search="zjl-9823 columbus chicago john doe">
+                            <div>
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-xs font-bold text-slate-800">ZJL-9823</span>
+                                    <span class="text-[9px] bg-sky-100 text-sky-800 font-bold px-2 py-0.5 rounded">In Transit</span>
+                                </div>
+                                <p class="text-[11px] text-slate-600 mt-0.5">Columbus → Chicago</p>
+                                <p class="text-[10px] text-slate-400">Driver: <strong class="text-slate-700">John Doe (Truck #104)</strong></p>
+                            </div>
+                            <div class="text-right">
+                                <span class="block text-xs font-extrabold text-emerald-600">$2,400</span>
+                                <button onclick="viewFleetDetails('ZJL-9823')" class="text-[10px] text-sky-600 hover:underline font-semibold mt-1">Details</button>
+                            </div>
+                        </div>
+
+                        <!-- Fleet Item 2 -->
+                        <div class="fleet-item bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between" data-status="unassigned" data-search="zjl-9825 Louisville Atlanta unassigned">
+                            <div>
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-xs font-bold text-slate-800">ZJL-9825</span>
+                                    <span class="text-[9px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded">Unassigned</span>
+                                </div>
+                                <p class="text-[11px] text-slate-600 mt-0.5">Louisville → Atlanta</p>
+                                <p class="text-[10px] text-amber-600 font-semibold">Needs Driver</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="block text-xs font-extrabold text-emerald-600">$3,100</span>
+                                <button onclick="openDispatchModal('ZJL-9825')" class="bg-emerald-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg mt-1 shadow-sm">Assign</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==================== 3. CUSTOMER BOOKING VIEW ==================== -->
+                <div id="view-customer" class="space-y-4 hidden">
+                    <!-- Tracking Lookup Header Card -->
+                    <div class="bg-slate-900 text-white rounded-2xl p-4 shadow-sm space-y-3">
+                        <h3 class="text-xs font-bold text-amber-400 uppercase tracking-wider">Track Your Freight</h3>
+                        <div class="flex space-x-2">
+                            <input id="tracking-input" type="text" placeholder="Enter Freight Tracking #" value="ZJL-9823" class="flex-1 bg-slate-800 text-xs px-3 py-2 rounded-xl border border-slate-700 text-white focus:outline-none focus:border-amber-400">
+                            <button onclick="trackShipment()" class="bg-amber-500 hover:bg-amber-600 text-slate-900 text-xs font-bold px-4 py-2 rounded-xl transition">
+                                Track
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tracking Result Output Box -->
+                    <div id="tracking-result" class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+                        <div class="flex justify-between items-center border-b border-slate-100 pb-2 mb-3">
+                            <div>
+                                <span class="text-[10px] text-slate-400 font-bold uppercase block">Status Update</span>
+                                <span class="text-xs font-extrabold text-emerald-600 flex items-center">
+                                    <i class="fas fa-truck text-xs mr-1"></i> ON SCHEDULE
+                                </span>
+                            </div>
+                            <span class="text-[10px] bg-slate-100 text-slate-600 font-bold px-2 py-1 rounded-md">ZJL-9823</span>
+                        </div>
+
+                        <!-- Progress Bar Timeline -->
+                        <div class="space-y-3">
+                            <div class="flex items-center space-x-3 text-xs">
+                                <i class="fas fa-check-circle text-emerald-500 text-sm"></i>
+                                <div>
+                                    <p class="font-bold text-slate-800">Picked Up • Columbus, OH</p>
+                                    <p class="text-[10px] text-slate-400">Oct 26, 06:30 AM</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-3 text-xs">
+                                <i class="fas fa-spinner fa-spin text-sky-500 text-sm"></i>
+                                <div>
+                                    <p class="font-bold text-slate-800">In Transit • En Route via I-65 N</p>
+                                    <p class="text-[10px] text-slate-400">Current Speed: 62 mph</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-3 text-xs opacity-50">
+                                <i class="far fa-circle text-slate-400 text-sm"></i>
+                                <div>
+                                    <p class="font-bold text-slate-800">Delivery • Chicago, IL</p>
+                                    <p class="text-[10px] text-slate-400">Est: Today, 04:15 PM</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Instant Quote & Booking Form -->
+                    <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
+                        <h3 class="text-xs font-bold text-slate-800 border-b border-slate-100 pb-2 flex items-center">
+                            <i class="fas fa-calculator text-amber-500 mr-2"></i>Instant Freight Rate Calculator
+                        </h3>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-600 block mb-1">Origin City/Zip</label>
+                                <input id="quote-origin" type="text" placeholder="e.g. Chicago, IL" class="w-full bg-slate-50 text-xs px-2.5 py-2 rounded-xl border border-slate-200 focus:outline-none focus:border-slate-400">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-600 block mb-1">Destination City/Zip</label>
+                                <input id="quote-destination" type="text" placeholder="e.g. Dallas, TX" class="w-full bg-slate-50 text-xs px-2.5 py-2 rounded-xl border border-slate-200 focus:outline-none focus:border-slate-400">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-600 block mb-1">Equipment Type</label>
+                                <select id="quote-equipment" onchange="calculateQuote()" class="w-full bg-slate-50 text-xs px-2.5 py-2 rounded-xl border border-slate-200 focus:outline-none focus:border-slate-400">
+                                    <option value="dry_van">53' Dry Van</option>
+                                    <option value="reefer">Refrigerated (Reefer)</option>
+                                    <option value="flatbed">Flatbed</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-600 block mb-1">Est. Weight (lbs)</label>
+                                <input id="quote-weight" type="number" placeholder="40000" value="38000" oninput="calculateQuote()" class="w-full bg-slate-50 text-xs px-2.5 py-2 rounded-xl border border-slate-200 focus:outline-none focus:border-slate-400">
+                            </div>
+                        </div>
+
+                        <!-- Quote Output Badge -->
+                        <div class="bg-amber-50 rounded-xl p-3 border border-amber-200 flex justify-between items-center">
+                            <div>
+                                <span class="text-[10px] text-amber-800 font-bold block">ESTIMATED RATE</span>
+                                <span id="quote-price" class="text-xl font-black text-slate-900">$2,150.00</span>
+                            </div>
+                            <button onclick="bookShipment()" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-md">
+                                Book Load
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- MODALS SECTION -->
+            <!-- DVIR Inspection Modal -->
+            <div id="modal-dvir" class="hidden absolute inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-end">
+                <div class="w-full bg-white rounded-t-3xl p-5 space-y-4 max-h-[85%] overflow-y-auto">
+                    <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                        <h3 class="text-sm font-bold text-slate-800"><i class="fas fa-clipboard-check text-amber-500 mr-2"></i>DVIR Safety Inspection</h3>
+                        <button onclick="closeModal('modal-dvir')" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times text-base"></i></button>
+                    </div>
+
+                    <div class="space-y-2 text-xs">
+                        <div class="flex justify-between items-center p-2.5 bg-slate-50 rounded-xl border border-slate-200">
+                            <span class="font-medium text-slate-700">1. Brakes & Air Lines</span>
+                            <input type="checkbox" checked class="w-4 h-4 accent-emerald-500">
+                        </div>
+                        <div class="flex justify-between items-center p-2.5 bg-slate-50 rounded-xl border border-slate-200">
+                            <span class="font-medium text-slate-700">2. Tires, Wheels & Rims</span>
+                            <input type="checkbox" checked class="w-4 h-4 accent-emerald-500">
+                        </div>
+                        <div class="flex justify-between items-center p-2.5 bg-slate-50 rounded-xl border border-slate-200">
+                            <span class="font-medium text-slate-700">3. Lights & Reflectors</span>
+                            <input type="checkbox" checked class="w-4 h-4 accent-emerald-500">
+                        </div>
+                        <div class="flex justify-between items-center p-2.5 bg-slate-50 rounded-xl border border-slate-200">
+                            <span class="font-medium text-slate-700">4. Steering & Suspension</span>
+                            <input type="checkbox" checked class="w-4 h-4 accent-emerald-500">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-500 block mb-1">Driver Remarks / Defects</label>
+                        <textarea placeholder="Vehicle inspected in safe operating condition..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:outline-none h-16"></textarea>
+                    </div>
+
+                    <button onclick="submitDvir()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-900 font-extrabold text-xs py-3 rounded-xl shadow-md transition">
+                        Sign & Submit Inspection
+                    </button>
+                </div>
+            </div>
+
+            <!-- Document Upload Modal (POD/BOL) -->
+            <div id="modal-pod" class="hidden absolute inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-end">
+                <div class="w-full bg-white rounded-t-3xl p-5 space-y-4">
+                    <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                        <h3 class="text-sm font-bold text-slate-800"><i class="fas fa-file-upload text-sky-600 mr-2"></i>Upload POD / BOL</h3>
+                        <button onclick="closeModal('modal-pod')" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times text-base"></i></button>
+                    </div>
+
+                    <p class="text-xs text-slate-500">Snap a photo or upload signed Proof of Delivery for <strong id="pod-load-id" class="text-slate-800">ZJL-9823</strong>.</p>
+
+                    <div class="border-2 border-dashed border-slate-300 rounded-2xl p-6 text-center bg-slate-50 hover:bg-slate-100 transition cursor-pointer">
+                        <i class="fas fa-camera text-3xl text-slate-400 mb-2"></i>
+                        <p class="text-xs font-bold text-slate-700">Tap to Capture Bill of Lading</p>
+                        <span class="text-[10px] text-slate-400 block">Supports JPG, PNG, PDF</span>
+                    </div>
+
+                    <button onclick="submitPod()" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs py-3 rounded-xl shadow-md transition">
+                        Submit Document
+                    </button>
+                </div>
+            </div>
+
+            <!-- Driver Status Progression Modal -->
+            <div id="modal-status" class="hidden absolute inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-end">
+                <div class="w-full bg-white rounded-t-3xl p-5 space-y-4">
+                    <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                        <h3 class="text-sm font-bold text-slate-800"><i class="fas fa-tasks text-sky-600 mr-2"></i>Update Load Progress</h3>
+                        <button onclick="closeModal('modal-status')" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times text-base"></i></button>
+                    </div>
+
+                    <div class="space-y-2">
+                        <button onclick="updateLoadStatus('Arrived at Pickup')" class="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-sky-500 hover:bg-sky-50 transition flex justify-between items-center text-xs font-bold text-slate-700">
+                            <span>1. Arrived at Pickup</span>
+                            <i class="fas fa-map-marker-alt text-amber-500"></i>
+                        </button>
+                        <button onclick="updateLoadStatus('Loaded & In Transit')" class="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-sky-500 hover:bg-sky-50 transition flex justify-between items-center text-xs font-bold text-slate-700">
+                            <span>2. Loaded & En Route</span>
+                            <i class="fas fa-truck text-sky-500"></i>
+                        </button>
+                        <button onclick="updateLoadStatus('Arrived at Consignee')" class="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-sky-500 hover:bg-sky-50 transition flex justify-between items-center text-xs font-bold text-slate-700">
+                            <span>3. Arrived at Destination</span>
+                            <i class="fas fa-warehouse text-emerald-500"></i>
+                        </button>
+                        <button onclick="updateLoadStatus('Unloaded / Delivered')" class="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-sky-500 hover:bg-sky-50 transition flex justify-between items-center text-xs font-bold text-slate-700">
+                            <span>4. Mark Delivered (POD Required)</span>
+                            <i class="fas fa-check-circle text-emerald-600"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fleet Manager Driver Dispatch Modal -->
+            <div id="modal-dispatch" class="hidden absolute inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-end">
+                <div class="w-full bg-white rounded-t-3xl p-5 space-y-4">
+                    <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                        <h3 class="text-sm font-bold text-slate-800"><i class="fas fa-user-check text-emerald-600 mr-2"></i>Dispatch Driver</h3>
+                        <button onclick="closeModal('modal-dispatch')" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times text-base"></i></button>
+                    </div>
+
+                    <p class="text-xs text-slate-600">Assign an available driver to Load <strong id="dispatch-load-id" class="text-slate-800">ZJL-9825</strong>:</p>
+
+                    <div class="space-y-2">
+                        <button onclick="confirmDispatch('Driver Alex M. (Truck #108)')" class="w-full p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-left flex justify-between items-center text-xs">
+                            <div>
+                                <p class="font-bold text-slate-800">Alex M.</p>
+                                <p class="text-[10px] text-slate-500">Truck #108 • Dry Van</p>
+                            </div>
+                            <span class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">Ready</span>
+                        </button>
+                        <button onclick="confirmDispatch('Driver Sarah K. (Truck #112)')" class="w-full p-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl text-left flex justify-between items-center text-xs">
+                            <div>
+                                <p class="font-bold text-slate-800">Sarah K.</p>
+                                <p class="text-[10px] text-slate-500">Truck #112 • Reefer</p>
+                            </div>
+                            <span class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">Ready</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Toast Notification Box -->
+            <div id="toast" class="hidden absolute top-16 left-4 right-4 bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-2xl z-50 flex items-center justify-between transition-all">
+                <span id="toast-message" class="text-xs font-semibold">Action completed successfully.</span>
+                <i class="fas fa-check-circle text-emerald-400 text-sm"></i>
+            </div>
+
+            <!-- Android Bottom System Navigation Bar -->
+            <div class="bg-slate-900 text-slate-400 py-3 px-8 flex justify-around items-center border-t border-slate-800 z-40">
+                <button class="hover:text-white transition"><i class="fas fa-[300] fa-minus text-sm transform rotate-90"></i></button>
+                <button class="hover:text-white transition"><i class="far fa-circle text-sm"></i></button>
+                <button class="hover:text-white transition"><i class="fas fa-square text-xs rounded-sm"></i></button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Interactive Logic Script -->
+    <script>
+        // System Clock Simulation
+        function updateClock() {
+            const now = new Date();
+            let hours = now.getHours();
+            let minutes = now.getMinutes();
+            hours = hours < 10 ? '0' + hours : hours;
+            minutes = minutes < 10 ? '0' + minutes : minutes;
+            document.getElementById('android-clock').innerText = `${hours}:${minutes}`;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Role Switching Logic
+        let activeRole = 'driver';
+        function toggleRoleMenu() {
+            const menu = document.getElementById('role-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        function switchRole(role) {
+            activeRole = role;
+            document.getElementById('role-menu').classList.add('hidden');
+
+            // Hide all views
+            document.getElementById('view-driver').classList.add('hidden');
+            document.getElementById('view-fleet').classList.add('hidden');
+            document.getElementById('view-customer').classList.add('hidden');
+
+            // Reset checkmarks
+            document.getElementById('check-driver').classList.add('hidden');
+            document.getElementById('check-fleet').classList.add('hidden');
+            document.getElementById('check-customer').classList.add('hidden');
+
+            // Activate chosen view
+            if(role === 'driver') {
+                document.getElementById('view-driver').classList.remove('hidden');
+                document.getElementById('check-driver').classList.remove('hidden');
+                document.getElementById('current-role-label').innerText = 'Driver View';
+            } else if(role === 'fleet') {
+                document.getElementById('view-fleet').classList.remove('hidden');
+                document.getElementById('check-fleet').classList.remove('hidden');
+                document.getElementById('current-role-label').innerText = 'Fleet Manager';
+            } else if(role === 'customer') {
+                document.getElementById('view-customer').classList.remove('hidden');
+                document.getElementById('check-customer').classList.remove('hidden');
+                document.getElementById('current-role-label').innerText = 'Customer View';
+            }
+        }
+
+        // Toast Notification System
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').innerText = message;
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+        }
+
+        // Modal Handlers
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        function openDvirModal() {
+            document.getElementById('modal-dvir').classList.remove('hidden');
+        }
+
+        function submitDvir() {
+            closeModal('modal-dvir');
+            showToast('DVIR Pre-Trip Report Signed & Filed');
+        }
+
+        function openPodModal(loadId) {
+            document.getElementById('pod-load-id').innerText = loadId;
+            document.getElementById('modal-pod').classList.remove('hidden');
+        }
+
+        function submitPod() {
+            closeModal('modal-pod');
+            showToast('POD Document successfully uploaded');
+        }
+
+        function openStatusUpdateModal(loadId) {
+            document.getElementById('modal-status').classList.remove('hidden');
+        }
+
+        function updateLoadStatus(statusText) {
+            closeModal('modal-status');
+            showToast(`Load Status Updated: ${statusText}`);
+        }
+
+        function openDispatchModal(loadId) {
+            document.getElementById('dispatch-load-id').innerText = loadId;
+            document.getElementById('modal-dispatch').classList.remove('hidden');
+        }
+
+        function confirmDispatch(driverInfo) {
+            closeModal('modal-dispatch');
+            showToast(`Assigned to ${driverInfo}`);
+        }
+
+        // Fleet Filtering Logic
+        function setFilter(filterType, btn) {
+            const buttons = document.querySelectorAll('.filter-btn');
+            buttons.forEach(b => {
+                b.classList.remove('bg-slate-900', 'text-white');
+                b.classList.add('bg-slate-100', 'text-slate-600');
+            });
+            btn.classList.remove('bg-slate-100', 'text-slate-600');
+            btn.classList.add('bg-slate-900', 'text-white');
+
+            const items = document.querySelectorAll('.fleet-item');
+            items.forEach(item => {
+                if (filterType === 'all' || item.dataset.status === filterType) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        function filterFleetLoads() {
+            const input = document.getElementById('fleet-search-input').value.toLowerCase();
+            const items = document.querySelectorAll('.fleet-item');
+            items.forEach(item => {
+                const searchData = item.dataset.search.toLowerCase();
+                if (searchData.includes(input)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        function viewFleetDetails(loadId) {
+            showToast(`Opening Load details for ${loadId}`);
+        }
+
+        // Customer Freight Quote Calculator Logic
+        function calculateQuote() {
+            const eq = document.getElementById('quote-equipment').value;
+            const weight = parseFloat(document.getElementById('quote-weight').value) || 0;
+            let baseRate = 1800;
+
+            if (eq === 'reefer') baseRate += 450;
+            if (eq === 'flatbed') baseRate += 300;
+            if (weight > 40000) baseRate += 250;
+
+            document.getElementById('quote-price').innerText = `$${baseRate.toLocaleString()}.00`;
+        }
+
+        function bookShipment() {
+            showToast('Freight Booking Request Sent!');
+        }
+
+        function trackShipment() {
+            const id = document.getElementById('tracking-input').value;
+            if (id) {
+                showToast(`Tracking status refreshed for ${id}`);
+            }
+        }
+
+        // Driver GPS Route Canvas Simulation Render Loop
+        window.onload = function() {
+            const canvas = document.getElementById('driver-gps-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+
+            function resizeCanvas() {
+                canvas.width = canvas.parentElement.clientWidth;
+                canvas.height = canvas.parentElement.clientHeight;
+            }
+            resizeCanvas();
+
+            let step = 0;
+            function drawMap() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Dark map background grid lines
+                ctx.strokeStyle = '#334155';
+                ctx.lineWidth = 1;
+                for (let x = 0; x < canvas.width; x += 20) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, canvas.height);
+                    ctx.stroke();
+                }
+                for (let y = 0; y < canvas.height; y += 20) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(canvas.width, y);
+                    ctx.stroke();
+                }
+
+                // Route Path
+                ctx.beginPath();
+                ctx.strokeStyle = '#0284c7';
+                ctx.lineWidth = 4;
+                ctx.moveTo(30, canvas.height / 2);
+                ctx.quadraticCurveTo(canvas.width / 2, canvas.height / 4, canvas.width - 30, canvas.height / 2);
+                ctx.stroke();
+
+                // Origin Dot
+                ctx.fillStyle = '#10b981';
+                ctx.beginPath();
+                ctx.arc(30, canvas.height / 2, 6, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Destination Dot
+                ctx.fillStyle = '#f59e0b';
+                ctx.beginPath();
+                ctx.arc(canvas.width - 30, canvas.height / 2, 6, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Animated Truck/Vehicle Marker
+                step += 0.005;
+                if (step > 1) step = 0;
+
+                const t = step;
+                const x = (1 - t) * (1 - t) * 30 + 2 * (1 - t) * t * (canvas.width / 2) + t * t * (canvas.width - 30);
+                const y = (1 - t) * (1 - t) * (canvas.height / 2) + 2 * (1 - t) * t * (canvas.height / 4) + t * t * (canvas.height / 2);
+
+                ctx.fillStyle = '#38bdf8';
+                ctx.beginPath();
+                ctx.arc(x, y, 7, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                requestAnimationFrame(drawMap);
+            }
+            drawMap();
+        };
+    </script>
+</body>
+</html>
